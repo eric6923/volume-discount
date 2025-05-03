@@ -1,122 +1,52 @@
-import { useEffect } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher } from "@remix-run/react";
-import {
-  Page,
-  Layout,
-  Text,
-  Card,
-  Button,
-  BlockStack,
-  Box,
-  List,
-  Link,
-  InlineStack,
-} from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+// import { json, LoaderFunctionArgs } from "@remix-run/node";
+// import { useLoaderData } from "@remix-run/react";
+// import { prisma } from "../lib/prisma.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+// export const loader = async ({ request }: LoaderFunctionArgs) => {
+//   const url = new URL(request.url);
+//   const shopDomain = url.searchParams.get("shop");
 
-  return null;
-};
+//   if (!shopDomain) {
+//     throw new Response("Missing shop parameter", { status: 400 });
+//   }
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
+//   const shop = await prisma.shop.findUnique({
+//     where: { shopDomain },
+//     include: {
+//       volumeDiscounts: true, // get volume discounts for this shop
+//     },
+//   });
 
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
+//   if (!shop) {
+//     throw new Response("Shop not found", { status: 404 });
+//   }
 
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyRemixTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
+//   return json({ shop });
+// };
 
-  const variantResponseJson = await variantResponse.json();
-
-  return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-  };
-};
-
-export default function Index() {
-  const fetcher = useFetcher<typeof action>();
-
-  const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
-  const productId = fetcher.data?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
-
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
-    }
-  }, [productId, shopify]);
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+export default function AppDashboard() {
+  // const { shop } = useLoaderData<typeof loader>();
 
   return (
-    <Page>
-      <TitleBar title="Remix app template">
-        <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button>
-      </TitleBar>
-    </Page>
+    // <div className="max-w-3xl mx-auto p-6">
+    //   <h1 className="text-3xl font-bold mb-4">Welcome, {shop.shopDomain}</h1>
+    //   <p className="text-gray-500 mb-6">Access Token: <code>{shop.accessToken}</code></p>
+
+    //   <h2 className="text-2xl font-semibold mb-2">Volume Discounts</h2>
+    //   <div className="space-y-4">
+    //     {shop.volumeDiscounts.length === 0 ? (
+    //       <p className="text-gray-500">No volume discounts yet.</p>
+    //     ) : (
+    //       shop.volumeDiscounts.map((discount: any) => (
+    //         <div key={discount.id} className="border p-4 rounded shadow">
+    //           <h3 className="text-lg font-semibold">{discount.title}</h3>
+    //           <p className="text-sm text-gray-600">Product ID: {discount.productId}</p>
+    //           <p className="text-sm text-gray-600">Tiers: {JSON.stringify(discount.tiers)}</p>
+    //         </div>
+    //       ))
+    //     )}
+    //   </div>
+    // </div>
+    <></>
   );
 }

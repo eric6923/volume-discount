@@ -3,23 +3,23 @@
 client_id = "d9b075689729cf852d35f2109169fbb5"
 name = "volume-discount"
 handle = "volume-discount-104"
-application_url = "https://subject-garcia-locking-everyday.trycloudflare.com"
+application_url = "https://buys-emerald-attempts-equal.trycloudflare.com"
 embedded = true
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
+include_config_on_deploy = true
 
 [webhooks]
 api_version = "2025-04"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://subject-garcia-locking-everyday.trycloudflare.com/auth/callback",
-  "https://subject-garcia-locking-everyday.trycloudflare.com/auth/shopify/callback",
-  "https://subject-garcia-locking-everyday.trycloudflare.com/api/auth/callback"
+  "https://buys-emerald-attempts-equal.trycloudflare.com/auth/callback",
+  "https://buys-emerald-attempts-equal.trycloudflare.com/auth/shopify/callback",
+  "https://buys-emerald-attempts-equal.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

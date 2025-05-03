@@ -25,3 +25,37 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model Shop {
+  id String @id @default(cuid())
+  shopDomain String @unique
+  accessToken String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //Relationships
+  products  ProductMetadata[]
+  volumeDiscounts VolumeDiscount[]
+}
+
+model ProductMetadata {
+  id String @id @default(cuid())
+  productId BigInt
+  shopId String
+  shop Shop @relation(fields: [shopId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VolumeDiscount {
+  id String @id @default(uuid())
+  productId BigInt
+  shopId String
+  shop Shop @relation(fields: [shopId], references: [id])
+  title String
+  tiers Json
+  startDate DateTime?
+  endDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
