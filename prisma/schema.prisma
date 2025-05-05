@@ -32,30 +32,19 @@ model Shop {
   accessToken String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  //Relationships
-  products  ProductMetadata[]
-  volumeDiscounts VolumeDiscount[]
 }
 
-model ProductMetadata {
-  id String @id @default(cuid())
-  productId BigInt
-  shopId String
-  shop Shop @relation(fields: [shopId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+model QuantityDiscount {
+  id               String   @id @default(cuid())
+  shopifyDiscountId String?
+  shop             String
+  title            String
+  configuration    Json
+  startsAt         DateTime
+  endsAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-model VolumeDiscount {
-  id String @id @default(uuid())
-  productId BigInt
-  shopId String
-  shop Shop @relation(fields: [shopId], references: [id])
-  title String
-  tiers Json
-  startDate DateTime?
-  endDate DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([shop])
+  @@index([shopifyDiscountId])
 }

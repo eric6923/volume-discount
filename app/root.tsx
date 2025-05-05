@@ -1,3 +1,4 @@
+// app/root.tsx
 import {
   Links,
   Meta,
@@ -5,10 +6,16 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { AppProvider } from "@shopify/polaris";
+import enTranslations from "@shopify/polaris/locales/en.json";
+import "@shopify/polaris/build/esm/styles.css"; // Polaris styles
+import {DiscountAppComponentsTestProvider} from '@shopify/discount-app-components';
+import "./index.css";
+import {AppBridgeProvider } from "./routes/AppBridgeContext";
 
 export default function App() {
   return (
-    <html>
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -21,7 +28,15 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        
+        <AppProvider i18n={enTranslations}>
+        <DiscountAppComponentsTestProvider locale="en">
+        <AppBridgeProvider>
+          <Outlet />
+          </AppBridgeProvider>
+          </DiscountAppComponentsTestProvider>
+        </AppProvider>
+        
         <ScrollRestoration />
         <Scripts />
       </body>

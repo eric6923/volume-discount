@@ -15,6 +15,7 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async () => {
+  
   // In a real implementation, this would fetch actual offer data from your backend
   const hasOffers = false;
   
@@ -32,7 +33,14 @@ export default function Offers() {
 
   return (
     <Page
-      title="👋 Hey, eCommerce Hero!"
+      title="Offers"
+      subtitle="Showcasing a variety of easy-to-use offer types to promote your sales and increase average order value (AOV)."
+      primaryAction={{
+        content: "Create offer",
+        onAction: () => {
+          navigate('/app/offers/new')
+        },
+      }}
     >
       <Layout>
         <Layout.Section>
