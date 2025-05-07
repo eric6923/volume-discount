@@ -10,7 +10,7 @@ import {
   InlineStack,
   BlockStack,
 } from "@shopify/polaris";
-import { ArrowLeftIcon } from "@shopify/polaris-icons";
+import { ArrowLeftMinor } from "@shopify/polaris-icons";
 import quality_discount from "../assets/volumediscount.png";
 // CSS styles for image placeholders
 
@@ -44,7 +44,7 @@ export default function New() {
       backAction={{
         onAction: handleBack,
         content: "Back",
-        icon: ArrowLeftIcon,
+        icon: ArrowLeftMinor,
       }}
     >
       <InlineGrid gap="400" columns={3}>

@@ -35,16 +35,44 @@ model Shop {
 }
 
 model QuantityDiscount {
-  id               String   @id @default(cuid())
+  id          String   @id @default(cuid())
+  shopId      String
+  title       String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Add Shopify discount ID to track the discount in Shopify
   shopifyDiscountId String?
-  shop             String
-  title            String
-  configuration    Json
-  startsAt         DateTime
-  endsAt           DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
 
-  @@index([shop])
-  @@index([shopifyDiscountId])
+  // Link to the discount tiers
+  tiers       QuantityDiscountTier[]
+
+  // Product selection
+  appliesTo   String   @default("all") // "all" or "specific-products"
+  productIds  String[] // Array of product IDs when appliesTo is "specific-products"
+
+  // Combination settings
+  combineWithOrderDiscounts     Boolean @default(false)
+  combineWithProductDiscounts   Boolean @default(false)
+  combineWithShippingDiscounts  Boolean @default(false)
+}
+
+model QuantityDiscountTier {
+  id            String   @id @default(cuid())
+  discountId    String
+  discount      QuantityDiscount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  
+  title         String
+  minQuantity   Int
+  maxQuantity   Int?
+  discountType  String   @default("percentage") // "percentage" or "fixed"
+  discountValue Float
+  
+  // Date range for this tier
+  startTime     DateTime
+  endTime       DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

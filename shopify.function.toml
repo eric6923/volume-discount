@@ -1,0 +1,24 @@
+name = "quantity-discount"
+type = "product_discounts"
+api_version = "2023-07"
+
+[build]
+command = "cargo wasi build --release"
+path = "target/wasm32-wasi/release/quantity-discount.wasm"
+
+[ui.paths]
+create = "/"
+details = "/"
+
+[input.configuration]
+fields = [
+  {
+    name = "discount_tiers",
+    type = "list",
+    list_item_type = "object",
+    list_item_fields = [
+      { name = "quantity", type = "number", description = "Minimum quantity required for this discount tier" },
+      { name = "percentage", type = "number", description = "Discount percentage to apply" }
+    ]
+  }
+]
