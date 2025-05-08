@@ -7,6 +7,9 @@ query CartInput {
         __typename
         ... on ProductVariant {
           id
+          product {
+            id
+          }
         }
       }
     }

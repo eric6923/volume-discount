@@ -42,32 +42,70 @@ import {
 } from "@shopify/discount-app-components";
 import { useNavigate } from "@remix-run/react";
 
-export const loader = async ({ request }: any) => {
+// Define proper types for the application
+type TierData = {
+  id: number;
+  title: string;
+  minQuantity: string;
+  maxQuantity?: string; // Optional property
+  discountType: string;
+  discountValue: string;
+  startTime: string;
+  endTime: string | null;
+};
+
+type ProductSelection = {
+  id: string;
+  title: string;
+  images?: Array<{ originalSrc: string }>;
+  variants?: Array<unknown>;
+  [key: string]: any; // For other properties that might be in the product object
+};
+
+type CombinesWithOptions = {
+  orderDiscounts: boolean;
+  productDiscounts: boolean;
+  shippingDiscounts: boolean;
+};
+
+type LoaderData = {
+  shop: string;
+};
+
+type ActionData = {
+  error?: string;
+};
+
+export const loader = async ({ request }: { request: Request }) => {
   console.log("Inside Loader Function");
   const { session } = await authenticate.admin(request);
-  return json({
+  return json<LoaderData>({
     shop: session.shop,
   });
 };
 
 // Modified action function to properly apply discounts
-export const action = async ({ request }: any) => {
+export const action = async ({ request }: { request: Request }) => {
   const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const data = Object.fromEntries(formData);
 
   try {
     // Parse JSON data from form
-    const tiersData = JSON.parse(data.tiers);
-    const selectedProducts = JSON.parse(data.selectedProducts || "[]");
-    const appliesTo = data.appliesTo;
-    const combinesWith = JSON.parse(data.combinesWith || "{}");
+    const tiersData = JSON.parse(data.tiers as string) as TierData[];
+    const selectedProducts = JSON.parse(
+      (data.selectedProducts as string) || "[]",
+    ) as ProductSelection[];
+    const appliesTo = data.appliesTo as string;
+    const combinesWith = JSON.parse(
+      (data.combinesWith as string) || "{}",
+    ) as CombinesWithOptions;
 
     // Create discount record in database
     const discount = await prisma.quantityDiscount.create({
       data: {
         shopId: session.shop,
-        title: data.title || "Volume Discount",
+        title: (data.title as string) || "Volume Discount",
         isActive: true,
         appliesTo,
         productIds: selectedProducts.map((p) => p.id),
@@ -89,19 +127,11 @@ export const action = async ({ request }: any) => {
     });
 
     // Format tiers for the function input
-    const formattedTiers = tiersData.map(
-      (tier: {
-        minQuantity: string;
-        discountType: string;
-        discountValue: string;
-      }) => ({
-        quantity: parseInt(tier.minQuantity),
-        percentage:
-          tier.discountType === "percentage"
-            ? parseFloat(tier.discountValue)
-            : 0, // You might want to handle fixed amounts differently
-      }),
-    );
+    const formattedTiers = tiersData.map((tier) => ({
+      quantity: parseInt(tier.minQuantity),
+      percentage:
+        tier.discountType === "percentage" ? parseFloat(tier.discountValue) : 0, // You might want to handle fixed amounts differently
+    }));
 
     // Create the discount on Shopify using the function
     const discountResponse = await admin.graphql(
@@ -121,7 +151,7 @@ export const action = async ({ request }: any) => {
       {
         variables: {
           automaticAppDiscount: {
-            title: data.title || "Volume Discount",
+            title: (data.title as string) || "Volume Discount",
             functionId: process.env.SHOPIFY_DISCOUNT_API_ID, // Make sure this env variable is correctly set
             startsAt: new Date(tiersData[0].startTime).toISOString(),
             endsAt: tiersData[0].endTime
@@ -140,14 +170,16 @@ export const action = async ({ request }: any) => {
                 type: "json",
                 value: JSON.stringify({
                   discount_id: discount.id,
-                  discount_tiers: tiersData.map((t: { title: any; minQuantity: string; discountValue: string; }) => ({
-                    // Must use 'discount_tiers' key
+                  discount_tiers: tiersData.map((t) => ({
                     title: t.title,
                     quantity: parseInt(t.minQuantity),
+                    max_quantity: t.maxQuantity
+                      ? parseInt(t.maxQuantity)
+                      : null,
                     percentage: parseFloat(t.discountValue),
                   })),
                   applies_to: appliesTo,
-                  product_ids: selectedProducts.map((p: { id: any; }) => p.id),
+                  product_ids: selectedProducts.map((p) => p.id),
                 }),
               },
             ],
@@ -161,10 +193,10 @@ export const action = async ({ request }: any) => {
 
     console.log("Discount Response:", JSON.stringify(discountData, null, 2));
 
-    if (discountData.errors) {
-      console.error("GraphQL Errors:", discountData.errors);
-      throw new Error(discountData.errors[0].message);
-    }
+    // if (discountData.errors) {
+    //   console.error("GraphQL Errors:", discountData.errors);
+    //   throw new Error(discountData.errors[0].message);
+    // }
 
     if (discountData.data?.discountAutomaticAppCreate?.userErrors?.length) {
       console.error(
@@ -194,21 +226,23 @@ export const action = async ({ request }: any) => {
     });
 
     return redirect("/app/qualitydiscount");
-  } catch (error) {
+  } catch (error: any) {
     console.error("Discount creation error:", error);
-    return json({ error: error.message }, { status: 500 });
+    return json<ActionData>({ error: error.message }, { status: 500 });
   }
 };
 
 export default function NewVolumeDiscount() {
-  const loaderData = useLoaderData();
-  const actionData = useActionData();
+  const loaderData = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   const app = useAppBridge();
 
   const [selectedOption, setSelectedOption] = useState("all");
   const [searchValue, setSearchValue] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState<ProductSelection[]>(
+    [],
+  );
   const [selectedTab, setSelectedTab] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -216,7 +250,7 @@ export default function NewVolumeDiscount() {
   const [toastError, setToastError] = useState(false);
 
   // Tiers state
-  const [tiers, setTiers] = useState([
+  const [tiers, setTiers] = useState<TierData[]>([
     {
       id: 1,
       title: "Buy 3 items",
@@ -232,25 +266,19 @@ export default function NewVolumeDiscount() {
   ]);
 
   // Combination Card states
-  const [combinesWith, setCombinesWith] = useState({
+  const [combinesWith, setCombinesWith] = useState<CombinesWithOptions>({
     orderDiscounts: false,
     productDiscounts: false,
     shippingDiscounts: false,
   });
 
-  const handleSelectChange = useCallback(
-    (value: React.SetStateAction<string>) => {
-      setSelectedOption(value);
-    },
-    [],
-  );
+  const handleSelectChange = useCallback((value: string) => {
+    setSelectedOption(value);
+  }, []);
 
-  const handleSearchChange = useCallback(
-    (value: React.SetStateAction<string>) => {
-      setSearchValue(value);
-    },
-    [],
-  );
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchValue(value);
+  }, []);
 
   const options = [
     { label: "All products", value: "all" },
@@ -275,7 +303,7 @@ export default function NewVolumeDiscount() {
         },
       });
 
-      picker.subscribe(ResourcePicker.Action.SELECT, (selection) => {
+      picker.subscribe(ResourcePicker.Action.SELECT, (selection: any) => {
         console.log("Selected products:", selection);
         if (selection.selection) {
           setSelectedProducts(selection.selection);
@@ -290,33 +318,33 @@ export default function NewVolumeDiscount() {
   }, [app, searchValue]);
 
   // Handle removal of a product
-  const handleRemoveProduct = useCallback((productId: any) => {
+  const handleRemoveProduct = useCallback((productId: string) => {
     setSelectedProducts((prevProducts) =>
       prevProducts.filter((product) => product.id !== productId),
     );
   }, []);
 
   // Handle tier tab change
-  const handleTabChange = useCallback(
-    (selectedTabIndex: React.SetStateAction<number>) => {
-      setSelectedTab(selectedTabIndex);
+  const handleTabChange = useCallback((selectedTabIndex: number) => {
+    setSelectedTab(selectedTabIndex);
+  }, []);
+
+  // Handle tier field changes
+  const handleTierChange = useCallback(
+    (id: number, field: keyof TierData, value: string) => {
+      setTiers((prevTiers) =>
+        prevTiers.map((tier) =>
+          tier.id === id ? { ...tier, [field]: value } : tier,
+        ),
+      );
     },
     [],
   );
 
-  // Handle tier field changes
-  const handleTierChange = useCallback((id: number, field: any, value: any) => {
-    setTiers((prevTiers) =>
-      prevTiers.map((tier) =>
-        tier.id === id ? { ...tier, [field]: value } : tier,
-      ),
-    );
-  }, []);
-
   // Add a new tier
   const handleAddTier = useCallback(() => {
     const newTierId = Math.max(...tiers.map((tier) => tier.id), 0) + 1;
-    const newTier = {
+    const newTier: TierData = {
       id: newTierId,
       title: `Buy X items`,
       minQuantity: "",
@@ -339,7 +367,7 @@ export default function NewVolumeDiscount() {
       const tierToDuplicate = tiers.find((tier) => tier.id === id);
       if (tierToDuplicate) {
         const newTierId = Math.max(...tiers.map((tier) => tier.id), 0) + 1;
-        const duplicatedTier = {
+        const duplicatedTier: TierData = {
           ...tierToDuplicate,
           id: newTierId,
           title: `${tierToDuplicate.title} (copy)`,
@@ -368,7 +396,7 @@ export default function NewVolumeDiscount() {
   );
 
   // Handle date changes for tiers
-  const handleTierStartDateChange = useCallback((id: number, value: any) => {
+  const handleTierStartDateChange = useCallback((id: number, value: string) => {
     setTiers((prevTiers) =>
       prevTiers.map((tier) =>
         tier.id === id ? { ...tier, startTime: value } : tier,
@@ -376,13 +404,16 @@ export default function NewVolumeDiscount() {
     );
   }, []);
 
-  const handleTierEndDateChange = useCallback((id: number, value: any) => {
-    setTiers((prevTiers) =>
-      prevTiers.map((tier) =>
-        tier.id === id ? { ...tier, endTime: value } : tier,
-      ),
-    );
-  }, []);
+  const handleTierEndDateChange = useCallback(
+    (id: number, value: string | null) => {
+      setTiers((prevTiers) =>
+        prevTiers.map((tier) =>
+          tier.id === id ? { ...tier, endTime: value } : tier,
+        ),
+      );
+    },
+    [],
+  );
 
   // Generate tabs for tiers
   const tabs = tiers.map((tier, index) => ({
@@ -536,11 +567,7 @@ export default function NewVolumeDiscount() {
                                         <Text as="span" fontWeight="bold">
                                           {product.title}
                                         </Text>
-                                        <Text
-                                          as="span"
-                                          variant="bodySm"
-                                          color="subdued"
-                                        >
+                                        <Text as="span" variant="bodySm">
                                           {product.variants?.length || 0} of{" "}
                                           {product.variants?.length || 0}{" "}
                                           variants selected
@@ -622,7 +649,7 @@ export default function NewVolumeDiscount() {
                             autoComplete="off"
                           />
 
-                          <Text as="p" variant="bodySm" color="subdued">
+                          <Text as="p" variant="bodySm">
                             Customers will see this on product page, in their
                             cart and at checkout.
                           </Text>
